@@ -1,0 +1,17 @@
+
+DAGedge (0,1)
+DAGedge (1,2)
+DAGedge (3,1)
+DAGedge (3,4)
+DAGedge (5,4)
+DAGedge (4,6)
+DAGedge (5,6)
+starting total area: 29
+vertex[0]: (area: 1,delay: 3)
+vertex[1]: (area: 2,delay: 2)
+vertex[2]: (area: 3,delay: 2)
+vertex[3]: (area: 2,delay: 2)
+vertex[4]: (area: 2,delay: 2)
+vertex[5]: (area: 5,delay: 1)
+vertex[6]: (area: 4,delay: 1)
+total area after optimization: 19

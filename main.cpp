@@ -5,59 +5,63 @@
 #include <assert.h>
 #include <random>
 #include <cmath>
+#include <fstream>
+#define NUMOFTRIALS 2000
 
 using namespace std;
 
-enum Adder {adder1 = 0, adder2, adder3};
-enum Multiplier {mult1 = 0, mult2, mult3, mult4};
-enum Shifter {sht1 = 0, sht2, sht3};
+// enum Adder {adder1 = 0, adder2, adder3};
+// enum Multiplier {mult1 = 0, mult2, mult3, mult4};
+// enum Shifter {sht1 = 0, sht2, sht3};
 
 class Node
 {
 protected:
-	int cnt;
+	int optType;
 	int area;
 	int delay;
 	int typeNum;
 public:
-	void resetCnt() {
-		cnt = 0;
-	}
 	int getTypeNum() {
 		return typeNum;
 	}
-	void setNode(int area, int delay);
+	virtual void setNode(int a) = 0;
 	int getArea() {
 		return area;
 	}
 	int getDelay() {
 		return delay;
 	}
-
+	int getOptType() {
+		return optType;
+	}
 };
 
 class Add: public Node
 {
 
 public:
-	Add(int cnt) {
-		this->cnt = cnt;
-		setNode(adder1);
+	Add(int optType) {
+		this->optType = optType;
+		setNode(optType);
 		typeNum = 3;
 	}
-	void setNode(Adder i) {
+	void setNode(int i) {
 		switch(i) {
-			case adder1:
+			case 0:
 				this->area = 4;
 				this->delay = 1;
+				this->optType = 0;
 				break;
-			case adder2:
+			case 1:
 				this->area = 2;
 				this->delay = 2;
+				this->optType = 1;
 				break;
-			case adder3:
+			case 2:
 				this->area = 1;
 				this->delay = 3;
+				this->optType = 2;
 				break;
 			default:
 				assert("invalid adder");
@@ -69,24 +73,27 @@ public:
 class Shift: public Node
 {
 public:
-	Shift(int cnt) {
-		this->cnt = cnt;
+	Shift(int optType) {
+		this->optType = optType;
 		typeNum = 3;
-		setNode(sht1);
+		setNode(optType);
 	}
-	void setNode(Shifter i) {
+	void setNode(int i) {
 		switch(i) {
-			case sht1:
+			case 0:
 				this->area = 3;
 				this->delay = 1;
+				this->optType = 0;
 				break;
-			case sht2:
+			case 1:
 				this->area = 2;
 				this->delay = 2;
+				this->optType = 1;
 				break;
-			case sht3:
+			case 2:
 				this->area = 1;
 				this->delay = 3;
+				this->optType = 2;
 				break;
 			default:
 				assert("invalid shifter");
@@ -98,28 +105,32 @@ public:
 class Mult: public Node
 {
 public:
-	Mult(int cnt) {
-		this->cnt = cnt;
-		setNode(mult1);
+	Mult(int optType) {
+		this->optType = optType;
+		setNode(optType);
 		typeNum = 4;
 	}
-	void setNode(Multiplier i) {
+	void setNode(int i) {
 		switch(i) {
-			case mult1:
+			case 0:
 				this->area = 5;
 				this->delay = 1;
+				this->optType = 0;
 				break;
-			case mult2:
+			case 1:
 				this->area = 3;
 				this->delay = 2;
+				this->optType = 1;
 				break;
-			case mult3:
+			case 2:
 				this->area = 2;
 				this->delay = 4;
+				this->optType = 2;
 				break;
-			case mult4:
+			case 3:
 				this->area = 1;
 				this->delay = 8;
+				this->optType = 3;
 			default:
 				assert("invalid multiplier");
 				break;
@@ -127,39 +138,41 @@ public:
 	}
 };
 
-void Node::setNode (int area, int delay) {
-	this->area = area;
-	this->delay = delay;
-}
-
 class Graph
 {
 	int n;
-	vector<Node> vertex;
+	vector<Node*> vertex;
 	vector< vector<int> > adj;
 	vector< vector<int> > adj_rv;
 public:
 	Graph(int n);
+	~Graph();
 	void addEdge(int u, int v);
 	int longestPath(int v);
 	void printGraph();
-	void addVertex(Node a);
+	void addVertex(Node *a);
 	int totalArea();
-	Node getNode(int i);
-	void changeVertex(int v, Node a);
+	Node* getNode(int i);
+	void changeVertex(int v, Node *a);
+	void printGraphInfo();
 };
 
-void Graph::changeVertex(int v, Node a)
+void Graph::changeVertex(int v, Node *a)
 {
 	vertex[v] = a;
 }
 
-Node Graph::getNode(int i)
+Node* Graph::getNode(int i)
 {
 	return vertex[i];
 }
 
 Graph::Graph(int n) : n(n), adj(n), adj_rv(n) {}
+Graph::~Graph()
+{
+	for(int i = 0; i < n; i++)
+		delete vertex[i];
+}
 
 void Graph::addEdge(int u, int v)
 {
@@ -177,28 +190,40 @@ void Graph::printGraph()
 		cout << endl;
 	}
 }
-void Graph::addVertex(Node a) {
+
+void Graph::printGraphInfo()
+{
+	int i = 0;
+	for(auto p : vertex) {
+		cout << "vertex[" << i << "]: " << "(area: " << p->getArea() << "," << "delay: " << p->getDelay() << ")" << endl;
+		i++;
+	}
+}
+
+void Graph::addVertex(Node *a) {
 	vertex.push_back(a);
 }
+
 int Graph::totalArea() {
 	int ans = 0;
 	for(auto i : vertex)
-		ans = ans + i.getArea();
+		ans = ans + i->getArea();
 	return ans;
 }
 int Graph::longestPath(int v) {
-	int maxDelay1 = 0;
+	int maxDelay1;
 	int maxDelay2 = 0;
 	vector<int>dist1(n);
 	priority_queue<pair<int, int>, vector<pair<int, int>>> pq1;
-	pq1.push(make_pair(vertex[v].getDelay(), v));
-	dist1[v] = vertex[v].getDelay();
+	pq1.push(make_pair(vertex[v]->getDelay(), v));
+	dist1[v] = vertex[v]->getDelay();
+	maxDelay1 = dist1[v];
 	while(!pq1.empty()) {
 		int a = pq1.top().second;
 		pq1.pop();
 		for(auto b : adj[a]) {
-			if(dist1[b] < dist1[a] + vertex[b].getDelay()) {
-				dist1[b] = dist1[a] + vertex[b].getDelay();
+			if(dist1[b] < dist1[a] + vertex[b]->getDelay()) {
+				dist1[b] = dist1[a] + vertex[b]->getDelay();
 				pq1.push(make_pair(dist1[b], b));
 				maxDelay1 = maxDelay1 < dist1[b] ? dist1[b] : maxDelay1;
 			}
@@ -212,8 +237,8 @@ int Graph::longestPath(int v) {
 		int a = pq2.top().second;
 		pq2.pop();
 		for(auto b : adj_rv[a]) {
-			if(dist2[b] < dist2[a] + vertex[b].getDelay()) {
-				dist2[b] = dist2[a] + vertex[b].getDelay();
+			if(dist2[b] < dist2[a] + vertex[b]->getDelay()) {
+				dist2[b] = dist2[a] + vertex[b]->getDelay();
 				pq2.push(make_pair(dist2[b], b));
 				maxDelay2 = maxDelay2 < dist2[b] ? dist2[b] : maxDelay2;
 			}
@@ -223,137 +248,97 @@ int Graph::longestPath(int v) {
 }
 
 
-// int main()
-// {
-// 	Graph g(7);	
-// 	Node a;
-// 	a.setNode(3, 1);
-// 	Node b;
-// 	b.setNode(6, 2);
-// 	Node c;
-// 	c.setNode(1, 3);
-// 	Node d;
-// 	d.setNode(1, 3);
-// 	Node e;
-// 	e.setNode(1, 1);
-// 	Node f;
-// 	f.setNode(1, 5);
-// 	Node h;
-// 	h.setNode(1, 1);
-// 	g.addVertex(a);
-// 	g.addVertex(b);
-// 	g.addVertex(c);
-// 	g.addVertex(d);
-// 	g.addVertex(e);
-// 	g.addVertex(f);
-// 	g.addVertex(h);
-// 	g.addEdge(0,1);
-// 	g.addEdge(1,2);
-// 	g.addEdge(3,1);
-// 	g.addEdge(3,4);
-// 	g.addEdge(5,4);
-// 	g.addEdge(5,6);
-// 	g.addEdge(4,6);
-// 	g.printGraph();
-// 	cout << g.totalArea() << endl;
-// 	cout << g.longestPath(4) << endl;
-// 	return 1;
-// }
-
-// int main()
-// {
-// 	Graph g(7);	
-// 	Add a(0);
-// 	Shift b(0);
-// 	Mult c(0);
-// 	Add d(0);
-// 	Add e(0);
-// 	Mult f(0);
-// 	Add h(0);
-// 	g.addVertex(a);
-// 	g.addVertex(b);
-// 	g.addVertex(c);
-// 	g.addVertex(d);
-// 	g.addVertex(e);
-// 	g.addVertex(f);
-// 	g.addVertex(h);
-// 	g.addEdge(0,1);
-// 	g.addEdge(1,2);
-// 	g.addEdge(3,1);
-// 	g.addEdge(3,4);
-// 	g.addEdge(5,4);
-// 	g.addEdge(5,6);
-// 	g.addEdge(4,6);
-// 	g.printGraph();
-// 	cout << g.totalArea() << endl;
-// 	cout << g.longestPath(4) << endl;
-// 	return 1;
-// }
-
 int main()
 {
-	int period = 8;
-	int n = 7;
-	Graph g(n);	
-	Add a(0);
-	Shift b(0);
-	Mult c(0);
-	Add d(0);
-	Add e(0);
-	Mult f(0);
-	Add h(0);
-	g.addVertex(a);
-	g.addVertex(b);
-	g.addVertex(c);
-	g.addVertex(d);
-	g.addVertex(e);
-	g.addVertex(f);
-	g.addVertex(h);
-	g.addEdge(0,1);
-	g.addEdge(1,2);
-	g.addEdge(3,1);
-	g.addEdge(3,4);
-	g.addEdge(5,4);
-	g.addEdge(5,6);
-	g.addEdge(4,6);
-	g.printGraph();
-	Node p = g.getNode(4);
-	cout << g.totalArea() << endl;
-	cout << g.longestPath(4) << endl;
-	cout << p.getTypeNum() << endl;
-	cout << g.getNode(4).getTypeNum() << endl;
+	int period;
+	int n;
+	int opt;
+	int u, v;
+
+	ifstream infile("graph.txt");
+	infile >> n;
+	infile >> period;
+	Graph g(n);
+
+	for(int i = 0; i < n; i++) {
+		infile >> opt;
+		// cout << opt;
+		switch(opt) {
+			case 0:
+				g.addVertex(new Add(0));
+				break;
+			case 1:
+				g.addVertex(new Shift(0));
+				break;
+			case 2:
+				g.addVertex(new Mult(0));
+				break;
+			default:
+				assert("wrong operator");
+				break;
+		}
+	}
+
+	cout << endl;
+	while(infile >> u >> v) {
+		cout << "DAGedge (" << u << "," << v << ")" << endl;
+		g.addEdge(u,v);
+
+	}
+	for(int i = 0; i < n; i++) {
+		if(g.longestPath(i) > period) {
+			cout << "impossible to achieve this clock period" << endl;
+			return 1;
+		}
+	}
+
+	// g.printGraph();
+	// Node *p = g.getNode(4);
+	cout << "starting total area: " << g.totalArea() << endl;
+	// cout << g.longestPath(4) << endl;
+	// cout << p->getTypeNum() << endl;
+	// cout << g.getNode(4)->getTypeNum() << endl;
 	int totalArea = g.totalArea();
-	double T = 800;
+	double T = 8.0;
 	bool frozen = false;
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_real_distribution<double> dis(0.0,1.0);
+	uniform_int_distribution<int> randomGate(0,n-1);
+	uniform_int_distribution<int> randomGateType1(0,2);
+	uniform_int_distribution<int> randomGateType2(0,3);
+
 	while(!frozen) {
-		currentArea = totalArea;
-		for(int i = 0; i < n; i++) {
-			Node k = g.getNode(i);
-			Node tmp = k;
-			for(int j = 0; j < k.getTypeNum(); j++) {
-				localArea = totalArea;
-				k.setNode(j);
-				g.changeVertex(i, k);
-				if(g.longestPath(i) > period) {
-					g.changeVertex(i, tmp);
-				} else {
-					tmpArea = g.totalArea();
-					double delta = tmpArea - localArea;
-					if(delta > 0 && 
-					   uniform_real_distribution<double> distribution(0.0,1.0) > exp(-delta/T)) {
-						g.changeVertex(i, tmp);
-					}
+		int currentArea;
+		for(int i = 0; i < NUMOFTRIALS; i++) {
+			int indexGate = randomGate(gen);
+			Node *k = g.getNode(indexGate);
+			int indexType = k->getTypeNum() == 3 ? randomGateType1(gen) : randomGateType2(gen);
+			int typeBeforeChange = k->getOptType();
+			int AreaBeforeChange = k->getArea();
+			k->setNode(indexType);
+			if(g.longestPath(indexGate) > period) {
+				k->setNode(typeBeforeChange);
+			}else {
+				double delta = k->getArea() - AreaBeforeChange;
+				double x = dis(gen);
+				double y = exp(-delta/T);
+				if(delta > 0 && x > y) {
+					k->setNode(typeBeforeChange);
 				}
 			}
 		}
 		currentArea = g.totalArea();
 		if(currentArea < totalArea) {
 			totalArea = currentArea;
-			T = 0.9 * T;
+			T = 0.8 * T;
 		} else {
 			frozen = true;
 		}
 	}
+	g.printGraphInfo();
+	cout << "total area after optimization: " << g.totalArea() << endl;
+
 	return 1;
 }
 
